@@ -7,11 +7,11 @@ class Problem:
     # -------------
     # Represents entire problem given filename of unedited, initial manifest.
     # Functionality:
-    #   Recieve filename input
+    #   Receive manifest text input
     #   Read initial manifest, convert to Node form and store in initial_state
     #   Keep track of visited_nodes for A* (?)
-    #   Create filenameOUTBOUND.txt
     #   Have some sort of solve() function (?)
+    #   Ideally recieve filename/produce filenameOUTBOUND for modularity
 
     initial_state: Node
     visited_nodes: List[Node] #mutable
