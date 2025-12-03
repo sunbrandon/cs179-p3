@@ -47,7 +47,7 @@ def index():
         #OOP/Algorithm Testing
         print()
         test = Problem(manifest_text)
-        test.run()
+        test.run_a_star()
         print()
 
         return render_template("index.html", error=error)

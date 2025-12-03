@@ -1,5 +1,6 @@
 import sys
-from typing import Tuple, List #is this a repeated import?
+import heapq
+from typing import Tuple, List, Dict #is this a repeated import?
 from .Node import Node, Slot, SHIP_ROWS, SHIP_COLS
 
 class Problem: 
@@ -54,8 +55,65 @@ class Problem:
         initial_manifest = self.read_initial_manifest(manifest_text)
         return Node(initial_manifest)
 
-    def run(self): #solve(), currently just tests if initial input is balanced
+    def run_a_star(self): #solve(), currently just tests if initial input is balanced
         if self.initial_state.is_balanced():
-            print("Balanced")
-        else:
-            print("Unbalanced")
+            print("Initial state is balanced.")
+
+        open_list: List[Tuple[int,int,Node]] #store list of tuples containing {Node.f_cost, Node}
+        closed_set: Set[Tuple] = set()
+        
+        node_idx = 0
+        heapq.heappush(open_list, (self.initial_state.f_cost, node_idx, self.initial_state))
+        node_idx += 1
+
+        f_costs: Dict[Tuple,int] = {self.get_key(self.initial_state): self.initial_state.f_cost} #dict of {state key: f_cost}
+
+        while open_list:
+            _, _, current_node = heapq.heappop(open_list)
+            current_node_key = self.get_key(current_node)
+
+            if current_node.is_balanced():
+                print("Found solution.")
+                break
+            
+            if current_node_key in closed_set:
+                continue
+            
+            #at this point, node is not solution nor fully explored, and has lowest f_cost
+            for successor in current_node.get_successors():
+                successor_key = self.get_key(successor)
+                successor_current_cost = successor.f_cost #get_successor() must update each successor node's g_cost (and maybe h_cost) within the function!!
+                current_best_cost = f_costs.get(successor_key)
+
+                if current_best_cost is not None and current_best_cost < successor_current_cost:
+                    continue
+                
+                #at this point, we found a successor that is better
+                f_costs[successor_key] = successor_current_cost
+
+                if successor_key in closed_set:
+                    closed_set.remove(successor_key)
+                
+                heapq.heappush(open_list, (successor.f_cost, node_idx, successor))
+                node_idx += 1
+
+            closet_set.add(current_node_key)
+
+        if not current_node.is_balanced():
+            print("Failed to find a solution.")
+
+    def get_key(self, node):
+        key_list = []
+        for slot in node.used_slots:
+            key_list.append(slot.weight, slot.row, slot.col)
+        
+        return tuple(sorted(key_list))
+
+
+                
+
+
+
+
+        
+

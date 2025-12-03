@@ -35,10 +35,16 @@ class Node:
 
     state: Tuple[Tuple[Slot]] #immutable
     used_slots: List[Slot] = [] #mutable, slot coordinates may change 
+    f_cost: int
+    g_cost: int
+    h_cost: int
 
-    def __init__(self,current_ship):
+    def __init__(self,current_ship, g_cost=0):
         self.state = current_ship
         self.used_slots = self.get_used_slots()
+        g_cost = g_cost
+        h_cost = calculate_h_cost()
+        f_cost = self.g_cost + self.h_cost
     
     def get_used_slots(self):
         for r in range(SHIP_ROWS):
@@ -82,3 +88,12 @@ class Node:
                 print(f"[{slot.row + 1}, {slot.col + 1}] {slot.weight} {slot.description}") #Does not prepend '0's onto 1-digit coordinates
                 print()
 
+    def calculate_h_cost(self):
+        return 0 #currently Uniform Cost Search, figure out what heuristic to implement
+
+    def get_successors(self):
+        print("dummy")
+
+    def manhattan_distance(self):
+        print("dummy")
+        #function must not ghost through containers
