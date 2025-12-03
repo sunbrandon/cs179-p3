@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manifest Parser</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        textarea { width: 100%; height: 200px; }
+        pre { background: #f2f2f2; padding: 10px; }
+    </style>
+</head>
+
+<body>
+<h1>Manifest Parser</h1>
+
+<form method="POST">
+    <label>Paste manifest:</label><br>
+    <textarea name="manifest"></textarea><br><br>
+    <button type="submit">Parse</button>
+</form>
+
+{% if grid %}
+    <h2>Parsed Grid</h2>
+    <pre>{{ grid }}</pre>
+{% endif %}
+
+</body>
+</html>
