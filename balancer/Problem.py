@@ -56,6 +56,7 @@ class Problem:
     def run_a_star(self):
         if self.initial_state.is_balanced():
             print("Initial state is balanced.")
+            self.solution_log(self.initial_state)
             return
 
         open_list: List[Tuple[int,int,Node]] = [] #store list of tuples containing {Node.f_cost, Node idx, Node}
@@ -73,6 +74,7 @@ class Problem:
 
             if current_node.is_balanced():
                 print("Found solution.")
+                self.solution_log(current_node)
                 return
             
             if current_node_key in closed_set:
@@ -100,8 +102,6 @@ class Problem:
         
         if not current_node.is_balanced():
             print("Failed to find a solution.")
-        else: 
-            print("Solved?")
 
     def get_key(self, node):
         key_list = []
@@ -109,6 +109,23 @@ class Problem:
             key_list.append((slot.weight, slot.row, slot.col))
         
         return tuple(sorted(key_list))
+
+    def solution_log(self, goalNode):
+        solution: List[Node] = []
+        current_node = goalNode
+        
+        while current_node:
+            solution.append(current_node)
+            current_node = current_node.parent
+        
+        solution.reverse()
+        for node in solution:
+            if node.prev_state:
+                (r1,c1), (r2,c2) = node.prev_state
+                print(f"Container [{r1+1},{c1+1}] moves to [{r2+1},{c2+1}] with cost {node.g_cost}")
+
+        print(f"Total cost: {goalNode.g_cost}")
+        print()
 
 
                 

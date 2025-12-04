@@ -39,12 +39,14 @@ class Node:
     g_cost: int
     h_cost: int
 
-    def __init__(self,current_ship, g_cost=0):
+    def __init__(self,current_ship, g_cost=0, parent=None, prev_state=None):
         self.state = current_ship
         self.used_slots = self.get_used_slots()
         self.g_cost = g_cost
         self.h_cost = self.calculate_h_cost()
         self.f_cost = self.g_cost + self.h_cost
+        self.parent = parent
+        self.prev_state = prev_state
     
     def get_used_slots(self):
         used_slots: List[Slot] = []
@@ -93,7 +95,9 @@ class Node:
             print()
 
     def calculate_h_cost(self):
-        return 0 #currently Uniform Cost Search, figure out what heuristic to implement
+        #lower h is better
+        #balance ratio of current node? 
+        return 0 #currently Uniform Cost Search, figure out what heuristic to implement. include h=0 vs h(n) in report
 
     def adjusted_manhattan_distance(self, r1, c1, r2, c2):
         #function must not ghost through containers
@@ -107,12 +111,14 @@ class Node:
                 if slot.description != "UNUSED":
                     tallest_intermediate_row = r
 
+        tallest_intermediate_row = max(tallest_intermediate_row, r2)  
+
         #lift
         if tallest_intermediate_row == -1:
             lift_distance = 0
             curr_row = r1
         else:
-            lift_distance = (tallest_intermediate_row + 1 - r1)  
+            lift_distance = tallest_intermediate_row + 1 - r1
             curr_row = r1 + lift_distance
 
         #horizontal
@@ -183,7 +189,9 @@ class Node:
 
                 new_node = Node(
                     new_state,
-                    cumulative_cost
+                    cumulative_cost,
+                    parent=self,
+                    prev_state=((container.row, container.col),(targetR, targetC)) #sends two tuples of coordinates showing where container moved to
                 )
 
                 successors.append(new_node)
