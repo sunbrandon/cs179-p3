@@ -15,10 +15,8 @@ class Problem:
     #   Ideally recieve filename/produce filenameOUTBOUND for modularity
 
     initial_state: Node
-    visited_nodes: List[Node] #mutable
 
     def __init__(self, manifest_text):
-        #self.visited_nodes = # can we initialize to first state here?
         self.initial_state = self.create_initial_node(manifest_text)
 
     def read_initial_manifest(self, manifest_text):
@@ -55,18 +53,19 @@ class Problem:
         initial_manifest = self.read_initial_manifest(manifest_text)
         return Node(initial_manifest)
 
-    def run_a_star(self): #solve(), currently just tests if initial input is balanced
+    def run_a_star(self):
         if self.initial_state.is_balanced():
             print("Initial state is balanced.")
+            return
 
-        open_list: List[Tuple[int,int,Node]] #store list of tuples containing {Node.f_cost, Node}
+        open_list: List[Tuple[int,int,Node]] = [] #store list of tuples containing {Node.f_cost, Node idx, Node}
         closed_set: Set[Tuple] = set()
         
         node_idx = 0
         heapq.heappush(open_list, (self.initial_state.f_cost, node_idx, self.initial_state))
         node_idx += 1
 
-        f_costs: Dict[Tuple,int] = {self.get_key(self.initial_state): self.initial_state.f_cost} #dict of {state key: f_cost}
+        g_costs: Dict[Tuple,int] = {self.get_key(self.initial_state): self.initial_state.g_cost} #dict of {state key: f_cost}
 
         while open_list:
             _, _, current_node = heapq.heappop(open_list)
@@ -74,7 +73,7 @@ class Problem:
 
             if current_node.is_balanced():
                 print("Found solution.")
-                break
+                return
             
             if current_node_key in closed_set:
                 continue
@@ -82,14 +81,14 @@ class Problem:
             #at this point, node is not solution nor fully explored, and has lowest f_cost
             for successor in current_node.get_successors():
                 successor_key = self.get_key(successor)
-                successor_current_cost = successor.f_cost #get_successor() must update each successor node's g_cost (and maybe h_cost) within the function!!
-                current_best_cost = f_costs.get(successor_key)
+                successor_current_cost = successor.g_cost #get_successor() must update each successor node's g_cost (and maybe h_cost) within the function!!
+                current_best_cost = g_costs.get(successor_key)
 
                 if current_best_cost is not None and current_best_cost < successor_current_cost:
                     continue
                 
                 #at this point, we found a successor that is better
-                f_costs[successor_key] = successor_current_cost
+                g_costs[successor_key] = successor_current_cost
 
                 if successor_key in closed_set:
                     closed_set.remove(successor_key)
@@ -97,15 +96,17 @@ class Problem:
                 heapq.heappush(open_list, (successor.f_cost, node_idx, successor))
                 node_idx += 1
 
-            closet_set.add(current_node_key)
-
+            closed_set.add(current_node_key)
+        
         if not current_node.is_balanced():
             print("Failed to find a solution.")
+        else: 
+            print("Solved?")
 
     def get_key(self, node):
         key_list = []
         for slot in node.used_slots:
-            key_list.append(slot.weight, slot.row, slot.col)
+            key_list.append((slot.weight, slot.row, slot.col))
         
         return tuple(sorted(key_list))
 

@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 
 SHIP_ROWS = 8
 SHIP_COLS = 12
@@ -34,7 +34,7 @@ class Node:
     #   Have transformation/next state function (?)
 
     state: Tuple[Tuple[Slot]] #immutable
-    used_slots: List[Slot] = [] #mutable, slot coordinates may change 
+    used_slots: List[Slot]
     f_cost: int
     g_cost: int
     h_cost: int
@@ -42,17 +42,18 @@ class Node:
     def __init__(self,current_ship, g_cost=0):
         self.state = current_ship
         self.used_slots = self.get_used_slots()
-        g_cost = g_cost
-        h_cost = calculate_h_cost()
-        f_cost = self.g_cost + self.h_cost
+        self.g_cost = g_cost
+        self.h_cost = self.calculate_h_cost()
+        self.f_cost = self.g_cost + self.h_cost
     
     def get_used_slots(self):
+        used_slots: List[Slot] = []
         for r in range(SHIP_ROWS):
             for c in range(SHIP_COLS):
                 slot = self.state[r][c]
-                if slot.description != "NAN" and slot.description != "UNUSED":
-                    self.used_slots.append(slot)
-        return self.used_slots
+                if slot and slot.description not in ("NAN, UNUSED"):
+                    used_slots.append(slot)
+        return used_slots
 
     def is_balanced(self):
         portside_weight = 0
@@ -82,18 +83,110 @@ class Node:
         return abs(portside_weight - starboard_weight) < (total_weight * 0.10)
     
     def test_func_print(self):
-        for r in range(SHIP_ROWS):
-            for c in range(SHIP_COLS):
-                slot = self.state[r][c]
-                print(f"[{slot.row + 1}, {slot.col + 1}] {slot.weight} {slot.description}") #Does not prepend '0's onto 1-digit coordinates
-                print()
+        # for r in range(SHIP_ROWS):
+        #     for c in range(SHIP_COLS):
+        #         slot = self.state[r][c]
+        #         print(f"[{slot.row + 1}, {slot.col + 1}] {slot.weight} {slot.description}") #Does not prepend '0's onto 1-digit coordinates
+        #         print()
+        for slot in self.used_slots:
+            print(f"[{slot.row + 1}, {slot.col + 1}] {slot.weight} {slot.description}")
+            print()
 
     def calculate_h_cost(self):
         return 0 #currently Uniform Cost Search, figure out what heuristic to implement
 
-    def get_successors(self):
-        print("dummy")
-
-    def manhattan_distance(self):
-        print("dummy")
+    def adjusted_manhattan_distance(self, r1, c1, r2, c2):
         #function must not ghost through containers
+        #lift distance + horizontal distance + drop distance
+        
+        #helper calculation: find tallest intermediate row (exclusive)
+        tallest_intermediate_row = -1
+        for c in range(c1+1, c2):
+            for r in range(SHIP_ROWS):
+                slot = self.state[r][c]
+                if slot.description != "UNUSED":
+                    tallest_intermediate_row = r
+
+        #lift
+        if tallest_intermediate_row == -1:
+            lift_distance = 0
+            curr_row = r1
+        else:
+            lift_distance = (tallest_intermediate_row + 1 - r1)  
+            curr_row = r1 + lift_distance
+
+        #horizontal
+        horizontal_distance = abs(c2 - c1) #min value = 0 (no move)
+
+        #drop
+        drop_distance =  curr_row - r2
+
+        return lift_distance + horizontal_distance + drop_distance
+
+    def get_successors(self):
+        successors: List[Node] = [] #successors is a list of nodes
+
+        #what containers can move? containers that exist and have nothing above them (topmost) per column
+        candidate_containers: List[Slot] = []
+
+        #where can valid containers move? UNUSED slots, not NAN slots. Only in the lowest unused row per column
+        candidate_slots: List[Tuple[int,int]] = [] #just list the row and col, don't need other slot info
+
+        #iterate through each column, searching for candidate containers or slots from node state
+        for c in range(SHIP_COLS):
+            #check rows
+            topmost_container = None
+            lowest_candidate = None
+
+            for r in range(SHIP_ROWS):
+                slot = self.state[r][c]
+                
+                if slot.description not in ("UNUSED", "NAN"):
+                    topmost_container = slot  #will continously update as rows increase
+                elif slot.description == "UNUSED" and lowest_candidate is None: #first open row found
+                    lowest_candidate = r
+
+            if topmost_container: 
+                candidate_containers.append(topmost_container)
+            if lowest_candidate:
+                candidate_slots.append((lowest_candidate, c))
+            
+        #generate successor nodes with candidate_containers and candidate_slots
+        for container in candidate_containers:
+            for targetR, targetC in candidate_slots:
+                if targetC == container.col: #case: available slot is directly above container, invalid movement
+                    continue
+                
+                movement_cost = self.adjusted_manhattan_distance(container.row, container.col, targetR, targetC)
+                cumulative_cost = self.g_cost + movement_cost
+
+                new_state = [list(row) for row in self.state] #make list so we can change self.state (mutable)
+
+                new_container = Slot(
+                    row = targetR,
+                    col = targetC,
+                    weight = container.weight,
+                    description = container.description
+                )
+
+                new_empty = Slot(
+                    row = container.row,
+                    col = container.col,
+                    weight = 0, #is this different from 00000? find out later
+                    description = "UNUSED"
+                )
+
+                new_state[targetR][targetC] = new_container
+                new_state[container.row][container.col] = new_empty
+
+                new_state = tuple(tuple(row) for row in new_state) #convert to tuple for Node generation, immutable
+
+                new_node = Node(
+                    new_state,
+                    cumulative_cost
+                )
+
+                successors.append(new_node)
+        return successors
+
+
