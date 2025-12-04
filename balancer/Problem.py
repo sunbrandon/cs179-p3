@@ -58,7 +58,7 @@ class Problem:
             print("Initial state is balanced.")
             self.solution_log(self.initial_state)
             return
-
+            
         open_list: List[Tuple[int,int,Node]] = [] #store list of tuples containing {Node.f_cost, Node idx, Node}
         closed_set: Set[Tuple] = set()
         
@@ -79,7 +79,7 @@ class Problem:
             
             if current_node_key in closed_set:
                 continue
-            
+
             #at this point, node is not solution nor fully explored, and has lowest f_cost
             for successor in current_node.get_successors():
                 successor_key = self.get_key(successor)
@@ -99,7 +99,7 @@ class Problem:
                 node_idx += 1
 
             closed_set.add(current_node_key)
-        
+            
         if not current_node.is_balanced():
             print("Failed to find a solution.")
 

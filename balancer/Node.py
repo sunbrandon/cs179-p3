@@ -53,7 +53,7 @@ class Node:
         for r in range(SHIP_ROWS):
             for c in range(SHIP_COLS):
                 slot = self.state[r][c]
-                if slot and slot.description not in ("NAN, UNUSED"):
+                if slot and slot.description not in ("NAN", "UNUSED"):
                     used_slots.append(slot)
         return used_slots
 
@@ -97,7 +97,19 @@ class Node:
     def calculate_h_cost(self):
         #lower h is better
         #balance ratio of current node? 
-        return 0 #currently Uniform Cost Search, figure out what heuristic to implement. include h=0 vs h(n) in report
+        
+        portside_weight = 0
+        starboard_weight = 0
+        
+        for slot in self.used_slots:
+            if slot.col < 6:
+                portside_weight += slot.weight
+            else:
+                starboard_weight += slot.weight
+        
+        return abs(portside_weight - starboard_weight)
+        
+        #return 0 #currently Uniform Cost Search, figure out what heuristic to implement. include h=0 vs h(n) in report
 
     def adjusted_manhattan_distance(self, r1, c1, r2, c2):
         #function must not ghost through containers
@@ -105,21 +117,24 @@ class Node:
         
         #helper calculation: find tallest intermediate row (exclusive)
         tallest_intermediate_row = -1
-        for c in range(c1+1, c2):
+
+        start_c = min(c1,c2)
+        end_c = max(c1,c2)
+
+        for c in range(start_c+1, end_c):
             for r in range(SHIP_ROWS):
                 slot = self.state[r][c]
                 if slot.description != "UNUSED":
-                    tallest_intermediate_row = r
-
-        tallest_intermediate_row = max(tallest_intermediate_row, r2)  
+                    tallest_intermediate_row = max(tallest_intermediate_row,r)
 
         #lift
-        if tallest_intermediate_row == -1:
+
+        if r1 >= tallest_intermediate_row + 1:
             lift_distance = 0
             curr_row = r1
         else:
             lift_distance = tallest_intermediate_row + 1 - r1
-            curr_row = r1 + lift_distance
+            curr_row = tallest_intermediate_row + 1
 
         #horizontal
         horizontal_distance = abs(c2 - c1) #min value = 0 (no move)
@@ -154,7 +169,7 @@ class Node:
 
             if topmost_container: 
                 candidate_containers.append(topmost_container)
-            if lowest_candidate:
+            if lowest_candidate is not None:
                 candidate_slots.append((lowest_candidate, c))
             
         #generate successor nodes with candidate_containers and candidate_slots
@@ -196,5 +211,3 @@ class Node:
 
                 successors.append(new_node)
         return successors
-
-
