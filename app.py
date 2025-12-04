@@ -2,6 +2,7 @@ from flask import Flask, render_template, request
 from balancer.Problem import Problem
 import os
 import re
+import time
 
 app = Flask(__name__)
 
@@ -46,8 +47,11 @@ def index():
 
         #OOP/Algorithm Testing
         print()
+        start_time = time.time()
         test = Problem(manifest_text)
         test.run_a_star()
+        final_time = time.time()
+        print(f"Time taken: {round((final_time - start_time) * 1000)} ms")
         print()
 
         return render_template("index.html", error=error)
