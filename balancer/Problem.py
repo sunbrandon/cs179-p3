@@ -1,5 +1,6 @@
 import sys
-from typing import Tuple, List #is this a repeated import?
+import heapq
+from typing import Tuple, List, Dict #is this a repeated import?
 from .Node import Node, Slot, SHIP_ROWS, SHIP_COLS
 
 class Problem: 
@@ -14,10 +15,8 @@ class Problem:
     #   Ideally recieve filename/produce filenameOUTBOUND for modularity
 
     initial_state: Node
-    visited_nodes: List[Node] #mutable
 
     def __init__(self, manifest_text):
-        #self.visited_nodes = # can we initialize to first state here?
         self.initial_state = self.create_initial_node(manifest_text)
 
     def read_initial_manifest(self, manifest_text):
@@ -54,8 +53,85 @@ class Problem:
         initial_manifest = self.read_initial_manifest(manifest_text)
         return Node(initial_manifest)
 
-    def run(self): #solve(), currently just tests if initial input is balanced
+    def run_a_star(self):
         if self.initial_state.is_balanced():
-            print("Balanced")
-        else:
-            print("Unbalanced")
+            print("Initial state is balanced.")
+            self.solution_log(self.initial_state)
+            return
+            
+        open_list: List[Tuple[int,int,Node]] = [] #store list of tuples containing {Node.f_cost, Node idx, Node}
+        closed_set: Set[Tuple] = set()
+        
+        node_idx = 0
+        heapq.heappush(open_list, (self.initial_state.f_cost, node_idx, self.initial_state))
+        node_idx += 1
+
+        g_costs: Dict[Tuple,int] = {self.get_key(self.initial_state): self.initial_state.g_cost} #dict of {state key: f_cost}
+
+        while open_list:
+            _, _, current_node = heapq.heappop(open_list)
+            current_node_key = self.get_key(current_node)
+
+            if current_node.is_balanced():
+                print("Found solution.")
+                self.solution_log(current_node)
+                return
+            
+            if current_node_key in closed_set:
+                continue
+
+            #at this point, node is not solution nor fully explored, and has lowest f_cost
+            for successor in current_node.get_successors():
+                successor_key = self.get_key(successor)
+                successor_current_cost = successor.g_cost #get_successor() must update each successor node's g_cost (and maybe h_cost) within the function!!
+                current_best_cost = g_costs.get(successor_key)
+
+                if current_best_cost is not None and current_best_cost < successor_current_cost:
+                    continue
+                
+                #at this point, we found a successor that is better
+                g_costs[successor_key] = successor_current_cost
+
+                if successor_key in closed_set:
+                    closed_set.remove(successor_key)
+                
+                heapq.heappush(open_list, (successor.f_cost, node_idx, successor))
+                node_idx += 1
+
+            closed_set.add(current_node_key)
+            
+        if not current_node.is_balanced():
+            print("Failed to find a solution.")
+
+    def get_key(self, node):
+        key_list = []
+        for slot in node.used_slots:
+            key_list.append((slot.weight, slot.row, slot.col))
+        
+        return tuple(sorted(key_list))
+
+    def solution_log(self, goalNode):
+        solution: List[Node] = []
+        current_node = goalNode
+        
+        while current_node:
+            solution.append(current_node)
+            current_node = current_node.parent
+        
+        solution.reverse()
+        for node in solution:
+            if node.prev_state:
+                (r1,c1), (r2,c2) = node.prev_state
+                print(f"Container [{r1+1},{c1+1}] moves to [{r2+1},{c2+1}] with cost {node.g_cost}")
+
+        print(f"Total cost: {goalNode.g_cost}")
+        print()
+
+
+                
+
+
+
+
+        
+
