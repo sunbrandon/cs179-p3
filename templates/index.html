@@ -4,57 +4,236 @@
     <title>Container Balancer</title>
 
     <style>
-        body { font-family: Arial; padding: 20px; }
-        textarea { width: 100%; height: 200px; }
+        :root {
+            --bg-color: #f4f7f6;
+            --panel-bg: #ffffff;
+            --primary: #2c3e50;
+            --accent: #3498db;
+        }
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: var(--bg-color); color: #333; }
+        
+        .layout { display: flex; gap: 20px; max-width: 1400px; margin: 0 auto; }
+        .control-panel { flex: 1; background: var(--panel-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .visual-panel { flex: 2; background: var(--panel-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
 
+        textarea { width: 100%; height: 150px; font-family: monospace; border: 1px solid #ddd; padding: 10px; }
+        input[type="text"] { width: 100%; padding: 8px; margin: 5px 0; }
+        
         button {
-            background: #1976d2;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-top: 10px;
+            background: var(--accent); color: white; border: none; padding: 12px 20px;
+            border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px;
         }
-        button:hover {
-            background: #0d47a1;
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #bdc3c7; cursor: not-allowed; }
+
+        .ship-bay {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-template-rows: repeat(8, 60px);
+            gap: 4px;
+            background: #2c3e50;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
         }
+
+        .slot {
+            background: #ecf0f1;
+            border: 1px solid #bdc3c7;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            text-align: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .slot.nan { background: #7f8c8d; border-color: #7f8c8d; }
+        .slot.unused { background: #fff; }
+        .slot.container { 
+            background: #e67e22; 
+            color: white; 
+            font-weight: bold;
+            box-shadow: inset 0 0 0 2px rgba(0,0,0,0.1);
+        }
+        
+        .name-tag { font-size: 10px; white-space: nowrap; overflow: hidden; max-width: 90%; text-overflow: ellipsis; }
+        .weight-tag { font-size: 9px; opacity: 0.8; }
+        .coord-tag { position: absolute; top: 1px; left: 2px; font-size: 8px; color: rgba(0,0,0,0.3); }
+
+        .log-box {
+            background: #222; color: #0f0; font-family: monospace; padding: 10px;
+            height: 150px; overflow-y: auto; border-radius: 4px;
+        }
+
+        .highlight-src { 
+            background-color: #e74c3c !important; 
+            color: #fff !important; 
+            border: 2px solid #c0392b !important;
+        }
+        
+        .highlight-dst { 
+            background-color: #2ecc71 !important; 
+            color: #fff !important;
+            border: 2px solid #27ae60 !important;
+        }
+
     </style>
 </head>
 <body>
 
-<h1>Container Balancer</h1>
+<h1>Container Balancer Solution</h1>
 
-<h2>Load Manifest</h2>
+<div class="layout">
+    <div class="control-panel">
+        <h3>1. Upload Manifest</h3>
+        {% if error %}
+            <div style="color: red; padding: 10px; background: #fee; border-left: 4px solid red;">{{ error }}</div>
+        {% endif %}
+        
+        <form method="POST" action="/" enctype="multipart/form-data">
+            <label>Upload File:</label><br>
+            <input type="file" name="file" accept=".txt"><br><br>
+            
+            <label>Or Enter Filename:</label>
+            <input type="text" name="filename" placeholder="ShipCase1.txt" value="{{ filename }}">
+            
+            <label>Manifest Content:</label>
+            <textarea name="manifest">{{ manifest }}</textarea>
+            
+            <button type="submit">Load & Solve</button>
+        </form>
 
-<form method="POST" action="/" enctype="multipart/form-data">
+        {% if time %}
+        <div style="margin-top: 15px; padding: 10px; background: #dff0d8; color: #3c763d;">
+            <strong>Solved in:</strong> {{ time }} ms
+        </div>
+        {% endif %}
+    </div>
 
-    <label>
-        <b>Upload Manifest File (.txt):</b>
-    </label>
-    <br>
-    <input type="file" name="file" accept=".txt">
-    <br>
-    <br>
+    <div class="visual-panel">
+        <h3>2. Visualization</h3>
+        
+        <div class="ship-bay" id="grid">
+            </div>
 
-    <label>
-        <b>OR enter manifest filename:</b>
-    </label>
-    <br>
-    <input type="text" name="filename" placeholder="example: Ship01.txt" style="width:300px;">
-    <br>
-    <br>
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <button onclick="nextStep()" id="btnNext" disabled>Next Step</button>
+            <button onclick="resetGrid()" id="btnReset" style="background: #95a5a6;" disabled>Reset</button>
+        </div>
 
-    <label>
-        <b>OR paste manifest contents:</b>
-    </label>
-    <br>
-    <textarea name="manifest">{{ session.get("manifest", "") }}</textarea>
-    <br>
-    <br>
+        <h4>Operation Log</h4>
+        <div class="log-box" id="log">
+            {% if not grid %}Waiting for manifest...{% endif %}
+        </div>
+    </div>
+</div>
 
-    <button type="submit">Load Manifest</button>
-</form>
+<script>
+    const initialGrid = {{ grid | tojson if grid else 'null' }};
+    const steps = {{ steps | tojson if steps else 'null' }};
+    
+    let currentGrid = null;
+    let stepIndex = 0;
+
+    if (initialGrid) {
+        currentGrid = JSON.parse(JSON.stringify(initialGrid));
+        renderGrid(currentGrid);
+        log("Manifest Loaded.");
+        
+        if (steps && steps.length > 0) {
+            document.getElementById('btnNext').disabled = false;
+            document.getElementById('btnReset').disabled = false;
+            log(`Solution found. Total moves: ${steps.length}`);
+        } else {
+            log("Ship is balanced or no solution needed.");
+        }
+    }
+
+    function renderGrid(gridData) {
+        const container = document.getElementById('grid');
+        container.innerHTML = '';
+
+        for (let r = 7; r >= 0; r--) {
+            for (let c = 0; c < 12; c++) {
+                const cell = gridData[r][c];
+                const div = document.createElement('div');
+                div.className = 'slot';
+                div.id = `cell-${r}-${c}`;
+                
+                const coord = document.createElement('span');
+                coord.className = 'coord-tag';
+                coord.innerText = `[${String(r+1).padStart(2,'0')},${String(c+1).padStart(2,'0')}]`;
+                div.appendChild(coord);
+
+                if (cell.name === "NAN") {
+                    div.classList.add('nan');
+                } else if (cell.name === "UNUSED") {
+                    div.classList.add('unused');
+                } else {
+                    div.classList.add('container');
+                    
+                    const nameSpan = document.createElement('div');
+                    nameSpan.className = 'name-tag';
+                    nameSpan.innerText = cell.name;
+                    div.appendChild(nameSpan);
+
+                    const weightSpan = document.createElement('div');
+                    weightSpan.className = 'weight-tag';
+                    weightSpan.innerText = `{${cell.weight}}`;
+                    div.appendChild(weightSpan);
+                }
+                container.appendChild(div);
+            }
+        }
+    }
+
+    function nextStep() {
+        if (!steps || stepIndex >= steps.length) return;
+
+        document.querySelectorAll('.highlight-src, .highlight-dst').forEach(el => {
+            el.classList.remove('highlight-src', 'highlight-dst');
+        });
+
+        const move = steps[stepIndex];
+        const src = { r: move[0][0], c: move[0][1] };
+        const dst = { r: move[1][0], c: move[1][1] };
+
+        log(`Step ${stepIndex + 1}: Move [${src.r+1},${src.c+1}] to [${dst.r+1},${dst.c+1}]`);
+
+        const container = currentGrid[src.r][src.c];
+        currentGrid[src.r][src.c] = { name: "UNUSED", weight: 0, r: src.r, c: src.c };
+        currentGrid[dst.r][dst.c] = { ...container, r: dst.r, c: dst.c };
+
+        renderGrid(currentGrid);
+
+        document.getElementById(`cell-${src.r}-${src.c}`).classList.add('highlight-src');
+        document.getElementById(`cell-${dst.r}-${dst.c}`).classList.add('highlight-dst');
+
+        stepIndex++;
+
+        if (stepIndex >= steps.length) {
+            document.getElementById('btnNext').disabled = true;
+            log("Balancing Completed.");
+        }
+    }
+
+    function resetGrid() {
+        currentGrid = JSON.parse(JSON.stringify(initialGrid));
+        stepIndex = 0;
+        renderGrid(currentGrid);
+        document.getElementById('btnNext').disabled = false;
+        log("Grid reset.");
+    }
+
+    function log(msg) {
+        const box = document.getElementById('log');
+        box.innerHTML += `<div>> ${msg}</div>`;
+        box.scrollTop = box.scrollHeight;
+    }
+</script>
 
 </body>
 </html>
