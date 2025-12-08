@@ -3,6 +3,9 @@ from typing import Tuple, List, Optional
 SHIP_ROWS = 8
 SHIP_COLS = 12
 
+PARK_ROW = 8 
+PARK_COL = 0
+
 class Slot:
     # SLOT CLASS
     # -------------
@@ -34,13 +37,15 @@ class Node:
     #   Have transformation/next state function (?)
 
     state: Tuple[Tuple[Slot]] #immutable
+    crane_pos: Tuple[int, int]
     used_slots: List[Slot]
     f_cost: int
     g_cost: int
     h_cost: int
 
-    def __init__(self,current_ship, g_cost=0, parent=None, prev_state=None):
+    def __init__(self,current_ship, crane_pos=(PARK_ROW, PARK_COL), g_cost=0, parent=None, prev_state=None):
         self.state = current_ship
+        self.crane_pos = crane_pos
         self.used_slots = self.get_used_slots()
         self.g_cost = g_cost
         self.h_cost = self.calculate_h_cost()
@@ -175,39 +180,35 @@ class Node:
         #generate successor nodes with candidate_containers and candidate_slots
         for container in candidate_containers:
             for targetR, targetC in candidate_slots:
-                if targetC == container.col: #case: available slot is directly above container, invalid movement
+                if targetC == container.col:
                     continue
+
+                curr_crane_r, curr_crane_c = self.crane_pos
+                crane_travel_dist = abs(curr_crane_r - container.row) + abs(curr_crane_c - container.col)
                 
-                movement_cost = self.adjusted_manhattan_distance(container.row, container.col, targetR, targetC)
-                cumulative_cost = self.g_cost + movement_cost
+                move_dist = self.adjusted_manhattan_distance(container.row, container.col, targetR, targetC)
+                
+                step_cost = crane_travel_dist + move_dist
+                cumulative_cost = self.g_cost + step_cost
 
-                new_state = [list(row) for row in self.state] #make list so we can change self.state (mutable)
-
-                new_container = Slot(
-                    row = targetR,
-                    col = targetC,
-                    weight = container.weight,
-                    description = container.description
-                )
-
-                new_empty = Slot(
-                    row = container.row,
-                    col = container.col,
-                    weight = 0, #is this different from 00000? find out later
-                    description = "UNUSED"
-                )
-
+                new_state = [list(row) for row in self.state]
+                
+                new_container = Slot(targetR, targetC, container.weight, container.description)
+                new_empty = Slot(container.row, container.col, 0, "UNUSED")
+                
                 new_state[targetR][targetC] = new_container
                 new_state[container.row][container.col] = new_empty
-
-                new_state = tuple(tuple(row) for row in new_state) #convert to tuple for Node generation, immutable
+                
+                new_state_tuple = tuple(tuple(row) for row in new_state)
 
                 new_node = Node(
-                    new_state,
-                    cumulative_cost,
+                    new_state_tuple,
+                    crane_pos=(targetR, targetC), 
+                    g_cost=cumulative_cost,
                     parent=self,
-                    prev_state=((container.row, container.col),(targetR, targetC)) #sends two tuples of coordinates showing where container moved to
+                    prev_state=((container.row, container.col), (targetR, targetC))
                 )
 
                 successors.append(new_node)
+        
         return successors
