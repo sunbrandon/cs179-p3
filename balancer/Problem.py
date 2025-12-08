@@ -10,7 +10,6 @@ class Problem:
     # Functionality:
     #   Receive manifest text input
     #   Read initial manifest, convert to Node form and store in initial_state
-    #   Keep track of visited_nodes for A* (?)
     #   Have some sort of solve() function (?)
     #   Ideally recieve filename/produce filenameOUTBOUND for modularity
 
