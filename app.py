@@ -12,8 +12,10 @@ class CapturingProblem(Problem):
         super().__init__(manifest_text)
         self.steps = [] 
         self.total_cost = 0
+        self.final_time_minutes = 0
 
-    def solution_log(self, goalNode):
+    def solution_log(self, goalNode, total_time=0):
+        self.final_time_minutes = total_time
         solution_nodes = []
         current_node = goalNode
         while current_node:
@@ -51,6 +53,7 @@ def index():
     grid_json = None
     filename_display = ""
     time_taken = None
+    total_time_display = 0
 
     if request.method == "POST":
         
@@ -94,6 +97,7 @@ def index():
                 time_taken = round((final_time - start_time) * 1000)
                 
                 steps = solver.steps
+                total_time_display = solver.final_time_minutes
                 
                 if not steps and not solver.initial_state.is_balanced():
                     error = "No solution found or ship is already balanced."
@@ -102,7 +106,7 @@ def index():
                 error = f"Algorithm Error: {e}"
                 print(f"Error: {e}")
 
-    return render_template("index.html", error=error, manifest=manifest_text, grid=grid_json, steps=steps, filename=filename_display, time=time_taken)
+    return render_template("index.html", error=error, manifest=manifest_text, grid=grid_json, steps=steps, filename=filename_display, time=time_taken, total_time=total_time_display)
 
 if __name__ == "__main__":
     os.makedirs(MANIFEST_DIR, exist_ok=True)

@@ -74,7 +74,16 @@ class Problem:
 
             if current_node.is_balanced():
                 print("Found solution.")
-                self.solution_log(current_node)
+                
+                last_r, last_c = current_node.crane_pos
+                park_r, park_c = (8, 0) 
+                
+                return_dist = abs(last_r - park_r) + abs(last_c - park_c)
+                total_time = current_node.g_cost + return_dist
+                
+                print(f"Total Time: {total_time} minutes")
+                
+                self.solution_log(current_node, total_time)
                 return
             
             if current_node_key in closed_set:
@@ -110,7 +119,7 @@ class Problem:
         
         return tuple(sorted(key_list))
 
-    def solution_log(self, goalNode):
+    def solution_log(self, goalNode, total_time):
         solution: List[Node] = []
         current_node = goalNode
         
@@ -127,11 +136,4 @@ class Problem:
         print(f"Total cost: {goalNode.g_cost}")
         print()
 
-
-                
-
-
-
-
-        
-
+        self.final_time_minutes = total_time
