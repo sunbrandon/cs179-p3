@@ -141,20 +141,35 @@
         <div>
             <h3 class="section-header">1. Upload Manifest</h3>
             {% if error %}
-                <div style="color: #c0392b; padding: 10px; background: #fadbd8; border-radius: 4px; margin-bottom: 10px;">{{ error }}</div>
+                <div style="color: red; padding: 10px; background: #fee; border-left: 4px solid red;">{{ error }}</div>
             {% endif %}
             
             <form method="POST" action="/" enctype="multipart/form-data">
-                <input type="file" name="file" accept=".txt" style="margin-bottom: 10px;">
-                <div style="text-align: center; margin: 5px 0; color: #7f8c8d;">- OR -</div>
-                <input type="text" name="filename" placeholder="Enter filename (e.g., ShipCase1.txt)" value="{{ filename }}">
-                <textarea name="manifest" placeholder="Raw manifest content..." style="display:none;">{{ manifest }}</textarea>
-                <button type="submit" style="margin-top: 15px;">Load & Solve</button>
+                <label>Upload File:</label><br>
+                <input type="file" name="file" accept=".txt"><br><br>
+                
+                <div>
+                    <label>Or Enter Filename:</label>
+                    <input type="text" name="filename" placeholder="ShipCase1.txt" value="{{ filename }}">
+                </div>
+                
+                <div style="padding-top: 20px">
+                    <label>Manifest Content:</label>
+                </div>
+                <textarea name="manifest" rows="10">{{ manifest }}</textarea>
+                
+                <button type="submit">Load & Solve</button>
             </form>
+
+            {% if time %}
+            <div style="margin-top: 15px; padding: 10px; background: #dff0d8; color: #3c763d;">
+                <strong>Solved in:</strong> {{ time }} ms
+            </div>
+            {% endif %}
         </div>
 
         {% if log_content %}
-        <div style="border-top: 2px solid #eee; padding-top: 20px;">
+        <div style="padding-top: 20px;">
             <h3 class="section-header">3. Operational Log</h3>
             <textarea id="log-editor" style="height: 250px; background: #fffcf5; border: 1px solid #f1c40f;">{{ log_content }}</textarea>
         </div>
