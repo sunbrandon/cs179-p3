@@ -60,7 +60,7 @@
         .ship-bay {
             display: grid;
             grid-template-columns: repeat(12, 1fr);
-            grid-template-rows: repeat(8, 50px);
+            grid-template-rows: 60px repeat(8, 60px);
             gap: 4px;
             background: #34495e;
             padding: 10px;
@@ -92,9 +92,28 @@
             box-shadow: inset 0 0 0 2px rgba(0,0,0,0.1);
         }
         
-        .name-tag { font-size: 9px; white-space: nowrap; overflow: hidden; max-width: 90%; text-overflow: ellipsis; }
-        .weight-tag { font-size: 8px; opacity: 0.8; }
-        .coord-tag { position: absolute; top: 1px; left: 2px; font-size: 7px; color: rgba(0,0,0,0.3); }
+        .slot.park-spot {
+            background: #bdc3c7;
+            border: 2px dashed #7f8c8d;
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 10px;
+        }
+        
+        .crane-highlight {
+            border: 4px solid #9b59b6 !important;
+            box-shadow: 0 0 8px rgba(155, 89, 182, 0.6);
+            z-index: 10;
+        }
+
+        .slot.empty-space {
+            background: transparent;
+            border: none;
+        }
+        
+        .name-tag { font-size: 10px; white-space: nowrap; overflow: hidden; max-width: 90%; text-overflow: ellipsis; }
+        .weight-tag { font-size: 9px; opacity: 0.8; }
+        .coord-tag { position: absolute; top: 1px; left: 2px; font-size: 8px; color: rgba(0,0,0,0.3); }
 
         .highlight-src { 
             background-color: var(--danger) !important; 
@@ -115,7 +134,7 @@
 </head>
 <body>
 
-<h1>Container Balancer Solution</h1>
+<h1>Formosa Solutions: ComputePortBalance</h1>
 
 <div class="layout">
     <div class="control-panel">
@@ -153,11 +172,17 @@
             <button onclick="nextStep()" id="btnNext" disabled>Next Step</button>
             <button onclick="resetGrid()" id="btnReset" style="background: #95a5a6;" disabled>Reset</button>
         </div>
-        
-        {% if time %}
-        <div style="margin-bottom: 10px; padding: 10px; background: #d4efdf; color: #1e8449; border-radius: 4px;">
-            <strong>Solved in:</strong> {{ time }} ms
-        </div>
+
+        {% if total_time %}
+            <div style="background: #e8f5e9; padding: 15px; border-left: 5px solid #4caf50; border-radius: 4px;">
+                <h3 style="margin-top: 0; color: #2e7d32;">Results</h3>
+                <p style="font-size: 1.1em;"><strong>Total Estimated Time:</strong> {{ total_time }} minutes</p>
+                <p style="font-size: 1.1em;"><strong>Total Moves:</strong> {{ steps|length }}</p>
+            </div>
+        {% else %}
+            <div style="padding: 15px; color: #7f8c8d; border: 1px dashed #bdc3c7; text-align: center; border-radius: 4px;">
+                <em>Solution results will appear here after calculation.</em>
+            </div>
         {% endif %}
     </div>
 </div>
@@ -166,8 +191,12 @@
     const initialGrid = {{ grid | tojson if grid else 'null' }};
     const steps = {{ steps | tojson if steps else 'null' }};
     
+    const PARK_ROW = 8;
+    const PARK_COL = 0; 
+
     let currentGrid = null;
     let stepIndex = 0;
+    let cranePos = { r: PARK_ROW, c: PARK_COL };
 
     if (initialGrid) {
         currentGrid = JSON.parse(JSON.stringify(initialGrid));
@@ -176,6 +205,19 @@
         if (steps && steps.length > 0) {
             document.getElementById('btnNext').disabled = false;
             document.getElementById('btnReset').disabled = false;
+            log(`Solution found. Total moves: ${steps.length}`);
+            
+            const firstMove = steps[0];
+            const firstSrc = firstMove[0];
+            
+            const parkCell = document.getElementById('cell-park');
+            const targetCell = document.getElementById(`cell-${firstSrc[0]}-${firstSrc[1]}`);
+            
+            if(parkCell) parkCell.classList.add('highlight-src');
+            if(targetCell) targetCell.classList.add('highlight-dst');
+            
+        } else {
+            log("Ship is balanced or no solution needed.");
         }
     }
 
@@ -194,6 +236,32 @@
         const container = document.getElementById('grid');
         container.innerHTML = '';
 
+        for (let c = 0; c < 12; c++) {
+            const div = document.createElement('div');
+            div.className = 'slot';
+
+            if (c === PARK_COL) { 
+                div.classList.add('park-spot');
+                div.id = 'cell-park';
+                
+                if (cranePos.r === PARK_ROW && cranePos.c === PARK_COL) {
+                    div.classList.add('crane-highlight');
+                    div.innerText = "CRANE";
+                } else {
+                    div.innerText = "PARKING";
+                }
+
+                const coord = document.createElement('span');
+                coord.className = 'coord-tag';
+                coord.innerText = `[09,01]`;
+                div.appendChild(coord);
+
+            } else {
+                div.classList.add('empty-space');
+            }
+            container.appendChild(div);
+        }
+
         for (let r = 7; r >= 0; r--) {
             for (let c = 0; c < 12; c++) {
                 const cell = gridData[r][c];
@@ -201,6 +269,10 @@
                 div.className = 'slot';
                 div.id = `cell-${r}-${c}`;
                 
+                if (cranePos.r === r && cranePos.c === c) {
+                    div.classList.add('crane-highlight');
+                }
+
                 const coord = document.createElement('span');
                 coord.className = 'coord-tag';
                 coord.innerText = `[${String(r+1).padStart(2,'0')},${String(c+1).padStart(2,'0')}]`;
@@ -229,38 +301,91 @@
     }
 
     function nextStep() {
-        if (!steps || stepIndex >= steps.length) return;
+        if (!steps || stepIndex > steps.length) return;
 
         document.querySelectorAll('.highlight-src, .highlight-dst').forEach(el => {
             el.classList.remove('highlight-src', 'highlight-dst');
         });
 
-        const move = steps[stepIndex];
-        const src = { r: move[0][0], c: move[0][1] };
-        const dst = { r: move[1][0], c: move[1][1] };
+        if (stepIndex < steps.length) {
+            const move = steps[stepIndex];
+            const src = { r: move[0][0], c: move[0][1] };
+            const dst = { r: move[1][0], c: move[1][1] };
 
-        const container = currentGrid[src.r][src.c];
-        currentGrid[src.r][src.c] = { name: "UNUSED", weight: 0, r: src.r, c: src.c };
-        currentGrid[dst.r][dst.c] = { ...container, r: dst.r, c: dst.c };
+            log(`Step ${stepIndex + 1}: Move [${src.r+1},${src.c+1}] to [${dst.r+1},${dst.c+1}]`);
 
-        renderGrid(currentGrid);
+            const container = currentGrid[src.r][src.c];
+            currentGrid[src.r][src.c] = { name: "UNUSED", weight: 0, r: src.r, c: src.c };
+            currentGrid[dst.r][dst.c] = { ...container, r: dst.r, c: dst.c };
 
-        document.getElementById(`cell-${src.r}-${src.c}`).classList.add('highlight-src');
-        document.getElementById(`cell-${dst.r}-${dst.c}`).classList.add('highlight-dst');
+            cranePos = { r: dst.r, c: dst.c };
 
-        stepIndex++;
+            renderGrid(currentGrid);
 
-        if (stepIndex >= steps.length) {
+            document.getElementById(`cell-${src.r}-${src.c}`).classList.add('highlight-src');
+            document.getElementById(`cell-${dst.r}-${dst.c}`).classList.add('highlight-dst');
+
+            stepIndex++;
+        } 
+        else if (stepIndex === steps.length) {
+            log("Final Step: Crane returning to parking position.");
+            
+            const lastMove = steps[steps.length - 1];
+            const lastPos = lastMove[1];
+
+            cranePos = { r: PARK_ROW, c: PARK_COL };
+            renderGrid(currentGrid);
+            
+            const lastCell = document.getElementById(`cell-${lastPos[0]}-${lastPos[1]}`);
+            const parkCell = document.getElementById('cell-park');
+            
+            if(lastCell) lastCell.classList.add('highlight-src');
+            if(parkCell) parkCell.classList.add('highlight-dst');
+            
+            stepIndex++;
             document.getElementById('btnNext').disabled = true;
+            document.getElementById('btnNext').innerText = "Done";
+            log("Balancing Completed.");
         }
     }
 
     function resetGrid() {
         currentGrid = JSON.parse(JSON.stringify(initialGrid));
         stepIndex = 0;
+        cranePos = { r: PARK_ROW, c: PARK_COL }; 
         renderGrid(currentGrid);
-        document.getElementById('btnNext').disabled = false;
+        
+        if (steps && steps.length > 0) {
+            const firstMove = steps[0];
+            const firstSrc = firstMove[0];
+            const parkCell = document.getElementById('cell-park');
+            const targetCell = document.getElementById(`cell-${firstSrc[0]}-${firstSrc[1]}`);
+            if(parkCell) parkCell.classList.add('highlight-src');
+            if(targetCell) targetCell.classList.add('highlight-dst');
+        }
+
+        const btn = document.getElementById('btnNext');
+        btn.disabled = false;
+        btn.innerText = "Next Step";
+        
+        log("Grid reset.");
     }
+
+    function log(msg) {
+        console.log(msg);
+    }
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === "Enter") {
+            const btn = document.getElementById('btnNext');
+            
+            if (btn && !btn.disabled) {
+                event.preventDefault();
+                btn.click();
+            }
+        }
+    });
+
 </script>
 
 </body>

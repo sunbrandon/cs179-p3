@@ -88,8 +88,10 @@ class CapturingProblem(Problem):
         self.steps = [] 
         self.total_cost = 0
         self.final_node = None
+        self.final_time_minutes = 0
 
-    def solution_log(self, goalNode):
+    def solution_log(self, goalNode, total_time=0):
+        self.final_time_minutes = total_time
         solution_nodes = []
         current_node = goalNode
         while current_node:
@@ -131,6 +133,8 @@ def index():
     filename_display = ""
     time_taken = None
     
+    total_time_display = 0
+
     if request.method == "POST":
         uploaded = request.files.get("file")
         if uploaded and uploaded.filename:
@@ -195,6 +199,8 @@ def index():
                 elif solver.initial_state.is_balanced():
                      write_to_log("Status: Ship is already balanced.")
 
+                total_time_display = solver.final_time_minutes
+                
                 if not steps and not solver.initial_state.is_balanced():
                     error = "No solution found."
                 
@@ -202,16 +208,7 @@ def index():
                 error = f"Algorithm Error: {e}"
                 print(f"Error: {e}")
 
-    return render_template(
-        "index.html", 
-        error=error, 
-        manifest=manifest_text, 
-        grid=grid_json, 
-        steps=steps, 
-        filename=filename_display, 
-        time=time_taken,
-        log_content=CURRENT_LOG_STRING 
-    )
+    return render_template("index.html", error=error, manifest=manifest_text, grid=grid_json, steps=steps, filename=filename_display, time=time_taken, total_time=total_time_display, log_content=CURRENT_LOG_STRING)
 
 if __name__ == "__main__":
     os.makedirs(MANIFEST_DIR, exist_ok=True)
