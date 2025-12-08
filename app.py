@@ -136,6 +136,7 @@ def index():
     total_time_display = 0
 
     if request.method == "POST":
+
         uploaded = request.files.get("file")
         if uploaded and uploaded.filename:
             if uploaded.filename.lower().endswith(".txt"):
@@ -161,7 +162,12 @@ def index():
         if not manifest_text:
             manifest_text = request.form.get("manifest", "")
 
+        if manifest_text == "":
+            error = "File is blank"
+    
+        
         if manifest_text.strip():
+            
             try:
                 container_count = 0
                 start_time = time.time()

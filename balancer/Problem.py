@@ -25,7 +25,7 @@ class Problem:
 
         for line in manifest_text.splitlines():
             line = line.strip()
-                    
+                
             try:
                 parts = line.split(',')
                 row = int(parts[0].strip('[')) - 1
@@ -45,6 +45,7 @@ class Problem:
 
             ship_state[slot.row][slot.col] = slot
             slots_count += 1
+                
             
         ship_tuple = tuple(tuple(s) for s in ship_state)
         return ship_tuple
