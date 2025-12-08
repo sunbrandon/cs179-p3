@@ -9,21 +9,52 @@
             --panel-bg: #ffffff;
             --primary: #2c3e50;
             --accent: #3498db;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #c0392b;
         }
-        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: var(--bg-color); color: #333; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: var(--bg-color); color: #333; }
         
-        .layout { display: flex; gap: 20px; max-width: 1400px; margin: 0 auto; }
-        .control-panel { flex: 1; background: var(--panel-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .visual-panel { flex: 2; background: var(--panel-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: var(--primary); text-align: center; margin-bottom: 30px; }
 
-        textarea { width: 100%; height: 150px; font-family: monospace; border: 1px solid #ddd; padding: 10px; }
-        input[type="text"] { width: 100%; padding: 8px; margin: 5px 0; }
+        .layout { display: flex; gap: 20px; max-width: 1400px; margin: 0 auto; align-items: flex-start; }
+        
+        .control-panel, .visual-panel { 
+            background: var(--panel-bg); 
+            padding: 25px; 
+            border-radius: 12px; 
+            box-shadow: 0 8px 16px rgba(0,0,0,0.05); 
+        }
+        
+        .control-panel { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+        .visual-panel { flex: 2; }
+
+        label { font-weight: 600; color: var(--primary); font-size: 0.9em; }
+        
+        textarea { 
+            width: 100%; 
+            font-family: 'Courier New', monospace; 
+            border: 1px solid #ddd; 
+            padding: 10px; 
+            border-radius: 6px; 
+            resize: vertical; 
+            box-sizing: border-box;
+        }
+
+        input[type="text"], input[type="file"] { 
+            width: 100%; 
+            padding: 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 6px; 
+            box-sizing: border-box; 
+        }
         
         button {
             background: var(--accent); color: white; border: none; padding: 12px 20px;
-            border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px;
+            border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; font-weight: 600;
+            transition: background 0.2s;
         }
-        button:hover { opacity: 0.9; }
+        button:hover { background: #2980b9; }
         button:disabled { background: #bdc3c7; cursor: not-allowed; }
 
         .ship-bay {
@@ -31,10 +62,11 @@
             grid-template-columns: repeat(12, 1fr);
             grid-template-rows: 60px repeat(8, 60px);
             gap: 4px;
-            background: #2c3e50;
+            background: #34495e;
             padding: 10px;
-            border-radius: 4px;
+            border-radius: 8px;
             margin-bottom: 20px;
+            border: 4px solid #2c3e50;
         }
 
         .slot {
@@ -44,13 +76,14 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
+            font-size: 10px;
             text-align: center;
             overflow: hidden;
             position: relative;
+            border-radius: 2px;
         }
 
-        .slot.nan { background: #7f8c8d; border-color: #7f8c8d; }
+        .slot.nan { background: #95a5a6; border-color: #7f8c8d; opacity: 0.5; }
         .slot.unused { background: #fff; }
         .slot.container { 
             background: #e67e22; 
@@ -83,16 +116,19 @@
         .coord-tag { position: absolute; top: 1px; left: 2px; font-size: 8px; color: rgba(0,0,0,0.3); }
 
         .highlight-src { 
-            background-color: #e74c3c !important; 
+            background-color: var(--danger) !important; 
             color: #fff !important; 
-            border: 2px solid #c0392b !important;
+            border: 2px solid #96281b !important;
+            transform: scale(0.95);
         }
-        
         .highlight-dst { 
-            background-color: #2ecc71 !important; 
+            background-color: var(--success) !important; 
             color: #fff !important;
-            border: 2px solid #27ae60 !important;
+            border: 2px solid #1e8449 !important;
+            transform: scale(1.05);
         }
+
+        .section-header { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; color: var(--primary); }
 
     </style>
 </head>
@@ -102,35 +138,49 @@
 
 <div class="layout">
     <div class="control-panel">
-        <h3>1. Upload Manifest</h3>
-        {% if error %}
-            <div style="color: red; padding: 10px; background: #fee; border-left: 4px solid red;">{{ error }}</div>
-        {% endif %}
-        
-        <form method="POST" action="/" enctype="multipart/form-data">
-            <label>Upload File:</label><br>
-            <input type="file" name="file" accept=".txt"><br><br>
+        <div>
+            <h3 class="section-header">1. Upload Manifest</h3>
+            {% if error %}
+                <div style="color: red; padding: 10px; background: #fee; border-left: 4px solid red;">{{ error }}</div>
+            {% endif %}
             
-            <label>Or Enter Filename:</label>
-            <input type="text" name="filename" placeholder="ShipCase1.txt" value="{{ filename }}">
-            
-            <label>Manifest Content:</label>
-            <textarea name="manifest">{{ manifest }}</textarea>
-            
-            <button type="submit">Load & Solve</button>
-        </form>
+            <form method="POST" action="/" enctype="multipart/form-data">
+                <label>Upload File:</label><br>
+                <input type="file" name="file" accept=".txt"><br><br>
+                
+                <div>
+                    <label>Or Enter Filename:</label>
+                    <input type="text" name="filename" placeholder="ShipCase1.txt" value="{{ filename }}">
+                </div>
+                
+                <div style="padding-top: 20px">
+                    <label>Manifest Content:</label>
+                </div>
+                <textarea name="manifest" rows="10">{{ manifest }}</textarea>
+                
+                <button type="submit">Load & Solve</button>
+            </form>
 
-        {% if time %}
-        <div style="margin-top: 15px; padding: 10px; background: #dff0d8; color: #3c763d;">
-            <strong>Solved in:</strong> {{ time }} ms
+            {% if time %}
+            <div style="margin-top: 15px; padding: 10px; background: #dff0d8; color: #3c763d;">
+                <strong>Solved in:</strong> {{ time }} ms
+            </div>
+            {% endif %}
+        </div>
+
+        {% if log_content %}
+        <div style="padding-top: 20px;">
+            <h3 class="section-header">3. Operational Log</h3>
+            <textarea id="log-editor" style="height: 250px; background: #fffcf5; border: 1px solid #f1c40f;">{{ log_content }}</textarea>
         </div>
         {% endif %}
     </div>
 
     <div class="visual-panel">
-        <h3>2. Visualization</h3>
+        <h3 class="section-header">2. Visualization</h3>
         
         <div class="ship-bay" id="grid">
+            <div style="grid-column: span 12; text-align: center; color: white; padding: 140px;">Waiting for manifest...</div>
         </div>
 
         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
@@ -166,7 +216,6 @@
     if (initialGrid) {
         currentGrid = JSON.parse(JSON.stringify(initialGrid));
         renderGrid(currentGrid);
-        log("Manifest Loaded.");
         
         if (steps && steps.length > 0) {
             document.getElementById('btnNext').disabled = false;
@@ -185,6 +234,17 @@
         } else {
             log("Ship is balanced or no solution needed.");
         }
+    }
+
+    const logEditor = document.getElementById('log-editor');
+    if (logEditor) {
+        logEditor.addEventListener('input', function() {
+            fetch('/update_log', {
+                method: 'POST',
+                body: logEditor.value,
+                headers: { 'Content-Type': 'text/plain' }
+            }).catch(err => console.error("Failed to sync log:", err));
+        });
     }
 
     function renderGrid(gridData) {
