@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, Response
+from flask import Flask, render_template, request, jsonify
 from balancer.Problem import Problem
 from balancer.Node import SHIP_ROWS, SHIP_COLS
 import os
@@ -23,9 +23,8 @@ def get_desktop_path():
     return os.path.join(os.path.expanduser("~"), "Desktop")
 
 def write_to_log(message):
-    """Appends a timestamped message to the global log state."""
     global CURRENT_LOG_STRING
-    timestamp = datetime.now().strftime("%m %d %Y: %H:%M")
+    timestamp = datetime.now().strftime("%m/%d/%Y: %H:%M")
     entry = f"{timestamp} {message}"
     
     FULL_LOG.append(entry)
@@ -38,7 +37,6 @@ def write_to_log(message):
     return entry
 
 def save_session_log_to_desktop():
-    """Writes the CURRENT_LOG_STRING to the Desktop on exit."""
     write_to_log("Program was shut down.")
     
     filename = f"FormosaSolutionsPort{SESSION_START_TIME.strftime('%m_%d_%Y_%H%M')}.txt"
@@ -58,17 +56,21 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
-@app.route("/update_log", methods=["POST"])
-def update_log():
-    """Receives edited log text from the browser and updates the server state."""
+@app.route("/add_comment", methods=["POST"])
+def add_comment():
     global CURRENT_LOG_STRING
     try:
-        new_content = request.data.decode("utf-8")
-        CURRENT_LOG_STRING = new_content
-        return "OK", 200
+        data = request.json
+        comment = data.get("content", "").strip()
+        
+        if comment:
+            # Specify "[COMMENT]" for easier readability
+            write_to_log(f"[COMMENT] {comment}")
+            
+        return jsonify({"log": CURRENT_LOG_STRING}), 200
     except Exception as e:
-        print(f"Error syncing log: {e}")
-        return "Error", 500
+        print(f"Error adding comment: {e}")
+        return jsonify({"error": str(e)}), 500
 
 def write_outbound_manifest(ship_state, original_filename):
     base_name = original_filename.replace(".txt", "")
@@ -207,7 +209,7 @@ def index():
                         write_to_log("Finished a Cycle. Error writing outbound manifest.")
 
                 elif solver.initial_state.is_balanced():
-                     write_to_log("Status: Ship is already balanced.")
+                    write_to_log("Status: Ship is already balanced.")
 
                 total_time_display = solver.final_time_minutes
                 

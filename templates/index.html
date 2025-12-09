@@ -129,6 +129,12 @@
         }
 
         .section-header { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; color: var(--primary); }
+        
+        .comment-box {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
 
     </style>
 </head>
@@ -171,7 +177,15 @@
         {% if log_content %}
         <div style="padding-top: 20px;">
             <h3 class="section-header">3. Operational Log</h3>
-            <textarea id="log-editor" style="height: 250px; background: #fffcf5; border: 1px solid #f1c40f;">{{ log_content }}</textarea>
+            <textarea id="log-display" style="height: 250px; background: #fdfdfd; border: 1px solid #ccc; color: #555;" readonly>{{ log_content }}</textarea>
+            
+            <div style="margin-top: 10px;">
+                <label>Operator Comment:</label>
+                <div class="comment-box">
+                    <input type="text" id="comment-input" placeholder="Type a note here..." onkeypress="handleCommentEnter(event)">
+                    <button onclick="addComment()" style="width: 80px; background: #95a5a6;">Add</button>
+                </div>
+            </div>
         </div>
         {% endif %}
     </div>
@@ -213,6 +227,11 @@
     let stepIndex = 0;
     let cranePos = { r: PARK_ROW, c: PARK_COL };
 
+    const logDisplay = document.getElementById('log-display');
+    if(logDisplay) {
+        logDisplay.scrollTop = logDisplay.scrollHeight;
+    }
+
     if (initialGrid) {
         currentGrid = JSON.parse(JSON.stringify(initialGrid));
         renderGrid(currentGrid);
@@ -236,15 +255,35 @@
         }
     }
 
-    const logEditor = document.getElementById('log-editor');
-    if (logEditor) {
-        logEditor.addEventListener('input', function() {
-            fetch('/update_log', {
-                method: 'POST',
-                body: logEditor.value,
-                headers: { 'Content-Type': 'text/plain' }
-            }).catch(err => console.error("Failed to sync log:", err));
-        });
+    function addComment() {
+        const input = document.getElementById('comment-input');
+        const text = input.value;
+        if (!text.trim()) return;
+
+        fetch('/add_comment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ content: text })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.log) {
+                const logArea = document.getElementById('log-display');
+                logArea.value = data.log;
+                logArea.scrollTop = logArea.scrollHeight;
+                input.value = "";
+            }
+        })
+        .catch(err => console.error("Error adding comment:", err));
+    }
+
+    function handleCommentEnter(e) {
+        if(e.key === 'Enter') {
+            e.preventDefault();
+            addComment();
+        }
     }
 
     function renderGrid(gridData) {
@@ -392,15 +431,16 @@
 
     document.addEventListener('keydown', function(event) {
         if (event.key === "Enter") {
-            const btn = document.getElementById('btnNext');
-            
-            if (btn && !btn.disabled) {
-                event.preventDefault();
-                btn.click();
+            // Trigger next step if focus is not on comment box
+            if (document.activeElement !== document.getElementById('comment-input')) {
+                const btn = document.getElementById('btnNext');
+                if (btn && !btn.disabled) {
+                    event.preventDefault();
+                    btn.click();
+                }
             }
         }
     });
-
 </script>
 
 </body>
