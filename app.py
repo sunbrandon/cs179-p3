@@ -15,7 +15,11 @@ FULL_LOG = []
 
 CURRENT_LOG_STRING = "" 
 
-def get_desktop_path():
+def get_desktop_path(): 
+    onedrive_desktop = os.path.join(os.path.expanduser("~"), "OneDrive", "Desktop")
+    if os.path.exists(onedrive_desktop):
+        return onedrive_desktop
+    
     return os.path.join(os.path.expanduser("~"), "Desktop")
 
 def write_to_log(message):
