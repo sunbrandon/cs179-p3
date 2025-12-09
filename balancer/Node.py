@@ -101,20 +101,48 @@ class Node:
 
     def calculate_h_cost(self):
         #lower h is better
-        #balance ratio of current node? 
         
         portside_weight = 0
         starboard_weight = 0
-        
+        portside_containers = []
+        starboard_containers = []
+        h = 0
+
+        #weigh each side, separate
         for slot in self.used_slots:
             if slot.col < 6:
                 portside_weight += slot.weight
+                portside_containers.append(slot)
             else:
                 starboard_weight += slot.weight
+                starboard_containers.append(slot)
         
-        return abs(portside_weight - starboard_weight)
+        deficit =  abs(portside_weight - starboard_weight)
         
-        #return 0 #currently Uniform Cost Search, figure out what heuristic to implement. include h=0 vs h(n) in report
+        #no difference in weight is good
+        if deficit == 0: 
+            return 0
+
+        if (portside_weight > starboard_weight):
+            heavy = portside_containers
+            col_range = range(6, 12) #opposite side range
+        else:
+            heavy = starboard_containers
+            col_range = range(0, 6) #opposite side range
+        
+        heavy_sorted = sorted(heavy, key=lambda container: container.weight, reverse=True)
+        leftover_deficit = deficit
+
+        for container in heavy_sorted:
+            if leftover_deficit <= 0:
+                break
+            
+            h += min(abs(container.col - c) for c in col_range)
+            leftover_deficit -= container.weight
+            
+        return h
+
+        #return 0 #currently Uniform Cost Search
 
     def adjusted_manhattan_distance(self, r1, c1, r2, c2):
         #function must not ghost through containers
